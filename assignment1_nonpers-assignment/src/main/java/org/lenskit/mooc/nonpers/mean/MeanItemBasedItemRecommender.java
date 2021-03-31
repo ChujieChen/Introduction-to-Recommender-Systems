@@ -16,6 +16,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
+// by LCC
+import java.util.Collections;
+import java.util.Comparator;
+
 /**
  * An item scorer that scores each item with its mean rating.
  */
@@ -40,7 +44,7 @@ public class MeanItemBasedItemRecommender extends AbstractItemBasedItemRecommend
 
     /**
      * {@inheritDoc}
-     *
+     * <p>
      * This is the LensKit recommend method.  It takes several parameters; we implement it for you in terms of a
      * simpler method ({@link #recommendItems(int, LongSet)}).
      */
@@ -78,7 +82,7 @@ public class MeanItemBasedItemRecommender extends AbstractItemBasedItemRecommend
      *     <li>Convert the list of results to a {@link ResultList} using {@link Results#newResultList(List)}.</li>
      * </ol>
      *
-     * @param n The number of items to recommend.  If this is negative, then recommend all possible items.
+     * @param n     The number of items to recommend.  If this is negative, then recommend all possible items.
      * @param items The items to score.
      * @return A {@link ResultMap} containing the scores.
      */
@@ -86,8 +90,24 @@ public class MeanItemBasedItemRecommender extends AbstractItemBasedItemRecommend
         List<Result> results = new ArrayList<>();
 
         // TODO Find the top N items by mean rating
-
-
+        ArrayList<Result> allItems = new ArrayList<>();
+        for (long item : items) {
+            if (model.hasItem(item)) {
+                allItems.add(Results.create(item, model.getMeanRating(item)));
+            }
+        }
+        Collections.sort(allItems, new Comparator<Result>() {
+            @Override
+            public int compare(Result a, Result b) {
+                if (a.getScore() != b.getScore()) {
+                    return a.getScore() > b.getScore() ? -1 : 1;
+                }
+                return a.getId() < b.getId() ? -1 : 1;
+            }
+        });
+        for(int i = 0; i < n; ++i){
+            results.add(allItems.get(i));
+        }
 
         return Results.newResultList(results);
     }
