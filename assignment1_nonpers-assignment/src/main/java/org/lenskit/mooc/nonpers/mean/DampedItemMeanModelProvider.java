@@ -62,9 +62,32 @@ public class DampedItemMeanModelProvider implements Provider<ItemMeanModel> {
     @Override
     public ItemMeanModel get() {
         // TODO Compute damped means
-
+        // gamma = 5? Do I need to set it somewhere?
+        // No. I don't need to set it manually.
+        Long2DoubleOpenHashMap itemRatingsumMap = new Long2DoubleOpenHashMap();
+        Long2IntOpenHashMap itemRatingcountMap = new Long2IntOpenHashMap();
+        double globalRatingsum = 0.0;
+        long globalRatingcount = 0;
+        try (ObjectStream<Rating> ratings = dao.query(Rating.class).stream()) {
+            for (Rating r: ratings) {
+                long item = r.getItemId();
+                double rating = r.getValue();
+                itemRatingsumMap.addTo(item, rating);
+                itemRatingcountMap.addTo(item, 1);
+                globalRatingsum += rating;
+                ++globalRatingcount;
+            }
+        }
+        double globalRatingmean = globalRatingsum / globalRatingcount;
+        Long2DoubleOpenHashMap dampedMeans = new Long2DoubleOpenHashMap();
+        for(long item: itemRatingsumMap.keySet()){
+            double dampedMean = (itemRatingsumMap.get(item) + this.damping * globalRatingmean)
+                    / (itemRatingcountMap.get(item) + this.damping);
+            dampedMeans.addTo(item, dampedMean);
+        }
+        return new ItemMeanModel(dampedMeans);
 
         // TODO Remove the line below when you have finished
-        throw new UnsupportedOperationException("damped mean not implemented");
+        // throw new UnsupportedOperationException("damped mean not implemented");
     }
 }
