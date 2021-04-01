@@ -15,6 +15,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
+// by LCC
+import java.util.Collections;
+import java.util.Comparator;
+
 /**
  * An item-based item scorer that uses association rules.
  */
@@ -67,6 +71,24 @@ public class AssociationItemBasedItemRecommender extends AbstractItemBasedItemRe
         List<Result> results = new ArrayList<>();
 
         // TODO Compute the n highest-scoring items from candidates
+        List<Result> allCandidates = new ArrayList<>();
+        for (long candidate : candidates) {
+            if (model.hasItem(candidate)) {
+                allCandidates.add(Results.create(candidate, model.getItemAssociation(refItem, candidate)));
+            }
+        }
+        Collections.sort(allCandidates, new Comparator<Result>() {
+            @Override
+            public int compare(Result a, Result b) {
+                if (a.getScore() != b.getScore()) {
+                    return a.getScore() > b.getScore() ? -1 : 1;
+                }
+                return a.getId() < b.getId() ? -1 : 1;
+            }
+        });
+        for(int i = 0; i < n; ++i){
+            results.add(allCandidates.get(i));
+        }
 
         return Results.newResultList(results);
     }

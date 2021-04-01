@@ -34,14 +34,14 @@ public class BasicAssociationModelProvider implements Provider<AssociationModel>
 
         // Open a stream, grouping ratings by item ID
         try (ObjectStream<IdBox<List<Rating>>> ratingStream = dao.query(Rating.class)
-                                                                 .groupBy(CommonAttributes.ITEM_ID)
-                                                                 .stream()) {
+                .groupBy(CommonAttributes.ITEM_ID)
+                .stream()) {
             // Process each item's ratings
-            for (IdBox<List<Rating>> item: ratingStream) {
+            for (IdBox<List<Rating>> item : ratingStream) {
                 // Build a set of users.  We build an array first, then convert to a set.
                 LongList users = new LongArrayList();
                 // Add each rating's user ID to the user sets
-                for (Rating r: item.getValue()) {
+                for (Rating r : item.getValue()) {
                     long user = r.getUserId();
                     users.add(user);
                     allUsers.add(user);
@@ -58,7 +58,7 @@ public class BasicAssociationModelProvider implements Provider<AssociationModel>
         Long2ObjectMap<Long2DoubleMap> assocMatrix = new Long2ObjectOpenHashMap<>();
 
         // then loop over 'x' items
-        for (Long2ObjectMap.Entry<LongSortedSet> xEntry: itemUsers.long2ObjectEntrySet()) {
+        for (Long2ObjectMap.Entry<LongSortedSet> xEntry : itemUsers.long2ObjectEntrySet()) {
             long xId = xEntry.getLongKey();
             LongSortedSet xUsers = xEntry.getValue();
 
@@ -66,11 +66,25 @@ public class BasicAssociationModelProvider implements Provider<AssociationModel>
             Long2DoubleMap itemScores = new Long2DoubleOpenHashMap();
 
             // loop over the 'y' items
-            for (Long2ObjectMap.Entry<LongSortedSet> yEntry: itemUsers.long2ObjectEntrySet()) {
+            for (Long2ObjectMap.Entry<LongSortedSet> yEntry : itemUsers.long2ObjectEntrySet()) {
                 long yId = yEntry.getLongKey();
                 LongSortedSet yUsers = yEntry.getValue();
 
                 // TODO Compute P(Y & X) / P(X) and store in itemScores
+                double xP = 1.0 * xUsers.size() / allUsers.size();
+                long yxUsercount = 0;
+                // by CJ: it might be better if we for loop the smaller zUsers
+                // -> O(min(m,n))
+                for (long xUser : xUsers) {
+                    // currently it's O(|xUsers|)
+                    if (yUsers.contains(xUser)) ++yxUsercount;
+                }
+                // by CJ: LongUtils.hasNCommonItems(LongSortedSet a, LongSortedSet b, int n)
+                // might be helpful with the idea of binarySearch -> O(log min(m,n))
+                // altough I don't know the implementation detail of hasNCommonItems
+                double yxP = 1.0 * yxUsercount / allUsers.size();
+                itemScores.put(yId, yxP / xP);
+
             }
 
             // save the score map to the main map
