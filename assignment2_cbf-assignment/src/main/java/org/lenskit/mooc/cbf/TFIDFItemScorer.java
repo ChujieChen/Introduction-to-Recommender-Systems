@@ -63,15 +63,35 @@ public class TFIDFItemScorer extends AbstractItemScorer {
 
         // Get the user's profile, which is a vector with their 'like' for each tag
         Map<String, Double> userVector = profileBuilder.makeUserProfile(ratings);
+        // TODO by LCC: userNorm
+        double uNorm = 0.0;
+        for(String tag: userVector.keySet()){
+            uNorm += userVector.get(tag) * userVector.get(tag);
+        }
+        uNorm = Math.sqrt(uNorm);
+
 
         for (Long item: items) {
             Map<String, Double> iv = model.getItemVector(item);
 
             // TODO Compute the cosine of this item and the user's profile, store it in the output list
+            double iNorm = 0.0;
+            for(String tag: iv.keySet()){
+                iNorm += iv.get(tag) * iv.get(tag);
+            }
+            iNorm = Math.sqrt(iNorm);
+            double cosine = 0.0;
+            for(String tag: iv.keySet()){
+                cosine += iv.get(tag) * userVector.getOrDefault(tag, 0.0);
+            }
+            if(uNorm * iNorm == 0.0) continue;
+            cosine = cosine / (uNorm * iNorm);
+            results.add(Results.create(item, cosine));
+
             // TODO And remove this exception to say you've implemented it
             // If the denominator of the cosine similarity is 0, skip the item
 
-            throw new UnsupportedOperationException("stub implementation");
+//            throw new UnsupportedOperationException("stub implementation");
         }
 
         return Results.newResultMap(results);
